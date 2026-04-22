@@ -1,0 +1,9 @@
+venv/
+data/
+.env
+__pycache__/
+*.pyc
+*.pyo
+output.txt
+chapters/
+chp3.txt
