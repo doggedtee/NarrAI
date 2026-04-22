@@ -1,0 +1,23 @@
+NarrAI/
+├── chapters/          # сюда кладём .txt файлы глав
+├── data/
+│   ├── world_state.json      # глобальное состояние мира
+│   ├── character_state.json  # состояние персонажей
+│   ├── location_state.json   # состояние локаций
+│   └── narrai.db             # SQLite база
+├── agents/
+│   ├── world_builder.py
+│   ├── analyzer.py
+│   ├── predictor.py
+│   ├── writer.py
+│   └── critic.py
+├── core/
+│   ├── parser.py      # читает .txt файлы
+│   └── state.py       # LangGraph state
+├── api/
+│   └── main.py        # FastAPI
+├── db/
+│   └── database.py    # SQLite логика
+├── .env               # API ключи
+├── requirements.txt
+└── main.py            # точка входа
