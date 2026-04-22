@@ -1,0 +1,10 @@
+langchain
+langchain-community
+langchain-text-splitters
+langchain-anthropic
+langgraph
+fastapi
+uvicorn
+python-dotenv
+ebooklib
+sentence-transformers
