@@ -31,7 +31,7 @@ Only decline for style if it is a MAJOR deviation — minor style differences ar
 
 Respond in this exact format:
 APPROVED: true or false
-FEEDBACK: your detailed feedback here"""
+FEEDBACK: brief feedback in 2-3 sentences"""
 
     response = llm.invoke(prompt)
     content = response.content

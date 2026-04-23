@@ -24,7 +24,7 @@ Current scene state:
 Last chapter:
 {last_chapter}
 
-Provide concise plot predictions — one sentence each."""
+Provide 3-5 concise plot predictions — one sentence each. Be brief."""
 
     response = llm.invoke(prompt)
     return {"predictions": response.content}
