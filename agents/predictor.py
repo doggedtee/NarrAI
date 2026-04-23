@@ -12,11 +12,11 @@ def predictor(state: NarrAIState) -> dict:
 
     prompt = f"""You are a story analyst. Based on the information below, predict what will happen next in the story.
 
-Style analysis:
-{state["style_analysis"]}
+Active characters and locations (hot):
+{json.dumps(state["classified_whole_state"]["hot"], indent=2)}
 
-World state:
-{json.dumps(state["whole_state"], indent=2)}
+Recently seen characters and locations (warm):
+{json.dumps(state["classified_whole_state"]["warm"], indent=2)}
 
 Current scene state:
 {json.dumps(state["active_state"], indent=2)}

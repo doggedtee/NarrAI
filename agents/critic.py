@@ -13,8 +13,11 @@ def critic(state: NarrAIState) -> dict:
 Style analysis:
 {state["style_analysis"]}
 
-World state:
-{json.dumps(state["whole_state"], indent=2)}
+Active characters and locations (hot):
+{json.dumps(state["classified_whole_state"]["hot"], indent=2)}
+
+Recently seen characters and locations (warm):
+{json.dumps(state["classified_whole_state"]["warm"], indent=2)}
 
 Current scene state:
 {json.dumps(state["active_state"], indent=2)}

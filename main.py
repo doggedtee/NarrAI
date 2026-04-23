@@ -53,7 +53,7 @@ def run(chapters_dir: str = "chapters/"):
         "chapters": chapters,
         "vectorstore": vectorstore,
         "style_analysis": None,
-        "whole_state": None,
+        "classified_whole_state": None,
         "active_state": None,
         "predictions": None,
         "generated_text": None,

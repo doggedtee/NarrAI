@@ -7,7 +7,7 @@ class NarrAIState(TypedDict):
     chapters: list[dict]
     vectorstore: Optional[FAISS]
     style_analysis: Optional[str]
-    whole_state: Optional[dict]
+    classified_whole_state: Optional[dict]
     active_state: Optional[dict]
     predictions: Optional[str]
     generated_text: Optional[str]

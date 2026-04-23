@@ -1,7 +1,11 @@
 import json
 import os
+import numpy as np
+from sentence_transformers import SentenceTransformer
 from langchain_anthropic import ChatAnthropic
 from core.state import NarrAIState
+
+embedder = SentenceTransformer("all-MiniLM-L6-v2")
 
 WORLD_STATE_PATH = "data/world_state.json"
 LOCATION_STATE_PATH = "data/location_state.json"
@@ -22,20 +26,46 @@ def save_json(path: str, data: dict):
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
-def get_schema(whole_state: dict) -> dict:
-    return {
+def get_schema(whole_state: dict, classified_whole_state: dict) -> dict:
+    schema = {
         "world": list(whole_state.get("world", {}).keys()),
-        "characters": {
-            name: list(data.keys())
-            for name, data in whole_state.get("characters", {}).items()
-            if isinstance(data, dict)
-        },
-        "locations": {
-            name: list(data.keys())
-            for name, data in whole_state.get("locations", {}).items()
-            if isinstance(data, dict)
-        }
+        "characters": {},
+        "locations": {}
     }
+
+    for tier in ("hot", "warm"):
+        for section in ("characters", "locations"):
+            for name, data in classified_whole_state.get(tier, {}).get(section, {}).items():
+                if isinstance(data, dict):
+                    schema[section][name] = [k for k in data.keys() if k != "last_seen"]
+
+    for section in ("characters", "locations"):
+        for name in classified_whole_state.get("cold", {}).get(section, {}).keys():
+            schema[section][name] = {}
+
+    return schema
+
+
+def resolve_field_names(new_data: dict, existing_data: dict) -> dict:
+    if not existing_data or not new_data:
+        return new_data
+
+    existing_keys = list(existing_data.keys())
+    existing_embeddings = embedder.encode(existing_keys)
+
+    resolved = {}
+    for key, value in new_data.items():
+        new_embedding = embedder.encode([key])
+        similarities = np.dot(existing_embeddings, new_embedding[0]) / (
+            np.linalg.norm(existing_embeddings, axis=1) * np.linalg.norm(new_embedding[0])
+        )
+        best_idx = int(np.argmax(similarities))
+        if similarities[best_idx] > 0.8:
+            resolved[existing_keys[best_idx]] = value
+        else:
+            resolved[key] = value
+
+    return resolved
 
 
 def merge_fields(existing: dict, new: dict):
@@ -48,26 +78,46 @@ def merge_fields(existing: dict, new: dict):
             existing[key] = value
 
 
-def merge_into_whole(active: dict, whole: dict) -> dict:
+def merge_into_whole(active: dict, whole: dict, chapter_idx: int) -> dict:
     merge_fields(whole.setdefault("world", {}), active.get("world", {}))
 
-    for name, data in active.get("characters", {}).items():
-        if name in whole.setdefault("characters", {}):
-            merge_fields(whole["characters"][name], data)
-        else:
-            whole["characters"][name] = data
-
-    for name, data in active.get("locations", {}).items():
-        if name in whole.setdefault("locations", {}):
-            merge_fields(whole["locations"][name], data)
-        else:
-            whole["locations"][name] = data
+    for section in ("characters", "locations"):
+        for name, data in active.get(section, {}).items():
+            previous_name = data.pop("previous_name", None)
+            if previous_name and previous_name in whole.setdefault(section, {}):
+                whole[section][name] = whole[section].pop(previous_name)
+            if name in whole.setdefault(section, {}):
+                merge_fields(whole[section][name], data)
+            else:
+                whole[section][name] = data
+            whole[section][name]["last_seen"] = chapter_idx
 
     return whole
 
 
-def extract_active_state(chapter_text: str, whole_state: dict) -> dict:
-    schema = get_schema(whole_state)
+def classify_elements(whole_state: dict, current_chapter_idx: int) -> dict:
+    result = {
+        "hot": {"characters": {}, "locations": {}},
+        "warm": {"characters": {}, "locations": {}},
+        "cold": {"characters": {}, "locations": {}},
+    }
+
+    for section in ("characters", "locations"):
+        for name, data in whole_state.get(section, {}).items():
+            last_seen = data.get("last_seen", 0)
+            if last_seen >= current_chapter_idx - 2:
+                tier = "hot"
+            elif last_seen >= current_chapter_idx - 4:
+                tier = "warm"
+            else:
+                tier = "cold"
+            result[tier][section][name] = data
+
+    return result
+
+
+def extract_active_state(chapter_text: str, whole_state: dict, classified_whole_state: dict) -> dict:
+    schema = get_schema(whole_state, classified_whole_state)
 
     if schema["world"] or schema["characters"] or schema["locations"]:
         schema_section = f"""This is the current world state schema — it shows what fields already exist and their names.
@@ -86,6 +136,7 @@ Current schema:
 Rules:
 - Use lists for fields that can have multiple values (abilities, possessions, traits, features, inhabitants, etc.)
 - Use strings only for fields that are always singular (name, age, status, current_location, etc.)
+- If you can identify that a character or location in this chapter is the same as a placeholder in the schema (e.g. "Blonde Girl" is now revealed to be "Emilia"), use the real name and add a field "previous_name" with the placeholder name.
 
 Chapter:
 {chapter_text}
@@ -115,14 +166,25 @@ def world_builder(state: NarrAIState) -> dict:
     }
 
     active_state = {}
+    classified_whole_state = {"hot": {"characters": {}, "locations": {}}, "warm": {"characters": {}, "locations": {}}, "cold": {"characters": {}, "locations": {}}}
 
     for i, chapter in enumerate(state["chapters"]):
         print(f"  Processing chapter {i + 1}/{len(state['chapters'])}: {chapter['filename']}")
         try:
-            active_state = extract_active_state(chapter["text"], whole_state)
+            active_state = extract_active_state(chapter["text"], whole_state, classified_whole_state)
+
+            for section in ("characters", "locations"):
+                cold_names = set(classified_whole_state.get("cold", {}).get(section, {}).keys())
+                for name, data in active_state.get(section, {}).items():
+                    if name in cold_names and name in whole_state.get(section, {}):
+                        active_state[section][name] = resolve_field_names(data, whole_state[section][name])
+
             print("  Active state:")
             print(json.dumps(active_state, indent=2, ensure_ascii=False))
-            whole_state = merge_into_whole(active_state, whole_state)
+            whole_state = merge_into_whole(active_state, whole_state, i + 1)
+            classified_whole_state = classify_elements(whole_state, i + 1)
+            print("  Classified state:")
+            print(json.dumps(classified_whole_state, indent=2, ensure_ascii=False))
         except Exception as e:
             print(f"  Error processing chapter {i + 1}: {e}")
             break
@@ -132,7 +194,7 @@ def world_builder(state: NarrAIState) -> dict:
     save_json(LOCATION_STATE_PATH, whole_state["locations"])
 
     return {
-        "whole_state": whole_state,
+        "classified_whole_state": classified_whole_state,
         "active_state": active_state
     }
 
