@@ -4,6 +4,7 @@ load_dotenv()
 from langgraph.graph import StateGraph, END
 from core.state import NarrAIState
 from core.parser import load_chapters
+from core.rag import build_vectorstore
 from agents.world_builder import world_builder
 from agents.analyzer import analyzer
 from agents.predictor import predictor
@@ -46,9 +47,11 @@ def run(chapters_dir: str = "chapters/"):
     init_db()
 
     chapters = load_chapters(chapters_dir)
+    vectorstore = build_vectorstore(chapters)
 
     initial_state = {
         "chapters": chapters,
+        "vectorstore": vectorstore,
         "style_analysis": None,
         "whole_state": None,
         "active_state": None,

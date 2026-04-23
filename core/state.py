@@ -1,9 +1,11 @@
 import operator
 from typing import TypedDict, Optional, Annotated
+from langchain_community.vectorstores import FAISS
 
 
 class NarrAIState(TypedDict):
     chapters: list[dict]
+    vectorstore: Optional[FAISS]
     style_analysis: Optional[str]
     whole_state: Optional[dict]
     active_state: Optional[dict]
