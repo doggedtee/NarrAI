@@ -4,34 +4,44 @@ NarrAI is a multi-agent AI system that analyzes unfinished light novels and book
 
 ## What it does
 
-NarrAI reads existing chapters of a book and builds a living model of the story world — tracking characters, locations, events, and the author's unique writing style. Using this context, it predicts what happens next and generates a new chapter that feels like a natural continuation.
+NarrAI reads existing chapters of a book and builds a living model of the story world — tracking characters, locations, plot threads, and the author's unique writing style. Using this context, it predicts what happens next and generates a new chapter that feels like a natural continuation.
 
 ## How it works
 
 The system uses a multi-agent pipeline built on LangGraph:
 
-- **World Builder** — reads all existing chapters and constructs a structured world state: characters, locations, and global story context. Updates automatically as new chapters are added.
-- **Analyzer** — studies the author's narrative voice, pacing, sentence structure, and stylistic patterns.
-- **Predictor** — uses the world state and style analysis to generate concise plot predictions for upcoming events.
-- **Writer** — generates the next chapter in the author's style, guided by predictions and the current world state.
-- **Critic** — reviews the generated chapter for lore consistency and character behavior. If issues are found, it sends the chapter back to the Writer with feedback (up to 3 iterations).
+- **World Builder** — reads all existing chapters and builds a structured world state: characters, locations, world facts, and plot threads.
+- **Analyzer** — studies the author's narrative voice, pacing, and stylistic patterns via RAG.
+- **Predictor** — uses active plot context and last chapter summary to generate plot predictions.
+- **Writer** — generates the next chapter guided by predictions, plot threads, and current scene state.
+- **Critic** — reviews the generated chapter for consistency. Sends it back to Writer with feedback if needed (up to 3 iterations).
 
-## World State System
+## World State
 
-Instead of relying purely on vector search, NarrAI maintains a structured world state that grows with the story:
+NarrAI tracks the story through four components:
 
-- `world_state.json` — global rules, time, political situation, story-specific mechanics
-- `character_state.json` — each character's appearance, personality, goals, relationships, and current situation
-- `location_state.json` — each location's description, atmosphere, and current inhabitants
+- **plot_threads** — main, paused, foreshadowed, and resolved plot lines. The active main thread drives what context is passed to each agent.
+- **characters** — appearance, traits, possessions, abilities, and current situation for each character.
+- **locations** — features and current events for each location.
+- **world** — global facts like currency, magic, technology level, and inhabitants.
 
-This approach ensures that generated chapters remain logically consistent with the established world, regardless of how long the book is.
+Only characters and locations relevant to the main plot thread are passed to the predictor and writer — keeping context focused and token usage fixed regardless of story length.
+
+## Token Efficiency
+
+| Agent | Before (v1) | After (v2) |
+|-------|------------|-----------|
+| Predictor | ~9.7k | ~1.5k |
+| Writer | ~10.7k | ~2.6k |
+| **Total (8 chapters)** | **~67.8k** | **~57.9k** |
+
+After the initial world state is built, each new chapter generation costs ~12-16k tokens regardless of how many chapters exist.
 
 ## Stack
 
-- Python
-- LangGraph + LangChain
+- Python, LangGraph, LangChain
 - Claude API (claude-sonnet-4-20250514)
-- FastAPI
+- Sentence Transformers (cosine similarity for state deduplication)
 - SQLite
 
 ## Installation
@@ -56,12 +66,4 @@ Run the pipeline:
 python main.py
 ```
 
-Or start the API server:
-```bash
-uvicorn api.main:app --reload
-```
-
-### API Endpoints
-
-- `POST /run` — run the full pipeline
-- `GET /predictions` — retrieve stored predictions
+World state is saved to `data/` as JSON files after each run.
