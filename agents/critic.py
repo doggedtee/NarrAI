@@ -13,11 +13,14 @@ def critic(state: NarrAIState) -> dict:
 Style analysis:
 {state["style_analysis"]}
 
-Active characters and locations (hot):
-{json.dumps(state["classified_whole_state"]["hot"], indent=2)}
+Plot threads:
+{json.dumps(state["selected_context"].get("plot_threads", {}), indent=2)}
 
-Recently seen characters and locations (warm):
-{json.dumps(state["classified_whole_state"]["warm"], indent=2)}
+World:
+{json.dumps(state["selected_context"].get("world", {}), indent=2)}
+
+Active characters:
+{json.dumps(state["selected_context"].get("characters", {}), indent=2)}
 
 Current scene state:
 {json.dumps(state["active_state"], indent=2)}

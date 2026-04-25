@@ -8,8 +8,6 @@ llm = ChatAnthropic(model="claude-sonnet-4-20250514")
 def writer(state: NarrAIState) -> dict:
     print("[4/5] Running writer...")
 
-    last_chapter = state["chapters"][-1]["text"]
-
     feedback_section = ""
     if state["critic_feedback"]:
         feedback_section = f"""
@@ -22,11 +20,14 @@ Previous critic feedback to address:
 Style analysis:
 {state["style_analysis"]}
 
-Active characters and locations (hot):
-{json.dumps(state["classified_whole_state"]["hot"], indent=2)}
+Plot threads:
+{json.dumps(state["selected_context"].get("plot_threads", {}), indent=2)}
 
-Recently seen characters and locations (warm):
-{json.dumps(state["classified_whole_state"]["warm"], indent=2)}
+World:
+{json.dumps(state["selected_context"].get("world", {}), indent=2)}
+
+Active characters and locations:
+{json.dumps({"characters": state["selected_context"].get("characters", {}), "locations": state["selected_context"].get("locations", {})}, indent=2)}
 
 Current scene state:
 {json.dumps(state["active_state"], indent=2)}
@@ -34,8 +35,8 @@ Current scene state:
 Plot predictions to follow:
 {state["predictions"]}
 
-Last chapter:
-{last_chapter}
+Last chapter summary:
+{state["chapter_summary"]}
 {feedback_section}
 Write the NEXT chapter as a standalone chapter that begins after the last chapter ends. Do not continue mid-scene — start fresh as a new chapter. Match the author's voice, pacing, and tone precisely. Always write a complete chapter with a proper ending — never cut off mid-sentence or mid-scene."""
 
