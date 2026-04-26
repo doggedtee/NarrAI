@@ -1,32 +1,9 @@
 import json
-from langchain_anthropic import ChatAnthropic
+from langchain_core.messages import SystemMessage, HumanMessage
 from core.state import NarrAIState
+from core.llm import llm
 
-llm = ChatAnthropic(model="claude-sonnet-4-20250514")
-
-
-def critic(state: NarrAIState) -> dict:
-    print("[5/5] Running critic...")
-
-    prompt = f"""You are a literary critic. Review the generated chapter continuation for consistency and quality.
-
-Style analysis:
-{state["style_analysis"]}
-
-Plot threads:
-{json.dumps(state["selected_context"].get("plot_threads", {}), indent=2)}
-
-World:
-{json.dumps(state["selected_context"].get("world", {}), indent=2)}
-
-Active characters:
-{json.dumps(state["selected_context"].get("characters", {}), indent=2)}
-
-Current scene state:
-{json.dumps(state["active_state"], indent=2)}
-
-Generated continuation to review:
-{state["generated_text"]}
+SYSTEM_PROMPT = """You are a literary critic. Review generated story chapter continuations for consistency and quality.
 
 Approve if:
 - Lore and world-building is consistent
@@ -39,7 +16,32 @@ Respond in this exact format:
 APPROVED: true or false
 FEEDBACK: brief feedback in 2-3 sentences"""
 
-    response = llm.invoke(prompt)
+
+def critic(state: NarrAIState) -> dict:
+    print("[5/5] Running critic...")
+
+    static_context = f"""Style analysis:
+{state["style_analysis"]}
+
+Plot threads:
+{json.dumps(state["selected_context"].get("plot_threads", {}), indent=2, ensure_ascii=False)}
+
+World:
+{json.dumps(state["selected_context"].get("world", {}), indent=2, ensure_ascii=False)}
+
+Active characters:
+{json.dumps(state["selected_context"].get("characters", {}), indent=2, ensure_ascii=False)}
+
+Current scene state:
+{json.dumps(state["active_state"], indent=2, ensure_ascii=False)}"""
+
+    response = llm.invoke([
+        SystemMessage(content=[{"type": "text", "text": SYSTEM_PROMPT, "cache_control": {"type": "ephemeral"}}]),
+        HumanMessage(content=[
+            {"type": "text", "text": static_context, "cache_control": {"type": "ephemeral"}},
+            {"type": "text", "text": f"Generated continuation to review:\n{state['generated_text']}"}
+        ])
+    ])
     content = response.content
 
     approved = any(phrase in content.lower() for phrase in ["approved: true", "approved:true", "approved: yes"])
