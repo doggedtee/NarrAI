@@ -12,6 +12,7 @@ class NarrAIState(TypedDict):
     chapter_summary: Optional[str]
     predictions: Optional[str]
     generated_text: Optional[str]
+    next_chapter_num: int
     critic_feedback: Annotated[list[str], operator.add]
     approved: bool
     iteration: int
