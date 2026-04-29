@@ -1,4 +1,7 @@
+import os
 import sqlite3
+
+os.makedirs("data", exist_ok=True)
 
 def get_connection():
     conn = sqlite3.connect("data/narrai.db")
