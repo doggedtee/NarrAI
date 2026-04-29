@@ -71,6 +71,11 @@ def run(session_dir: str = ".", on_agent=None):
     predicted_dir = os.path.join(session_dir, "predicted_chapters")
     original_dir = os.path.join(session_dir, "original_chapters")
 
+    for tmp in [os.path.join(chapters_dir, "predicted_temp.txt"),
+                *([os.path.join(predicted_dir, f) for f in os.listdir(predicted_dir) if f.endswith("_temp.txt")] if os.path.exists(predicted_dir) else [])]:
+        if os.path.exists(tmp):
+            os.remove(tmp)
+
     chapters = load_chapters(chapters_dir)
     if not chapters and os.path.exists(original_dir):
         chapters = load_chapters(original_dir)
@@ -127,9 +132,6 @@ def run(session_dir: str = ".", on_agent=None):
         result["generated_text"] = generated_text
         result["chapter_title"] = chapter_title
 
-    with open(os.path.join(chapters_dir, "predicted.txt"), "w", encoding="utf-8") as f:
-        f.write(generated_text)
-
     os.makedirs(predicted_dir, exist_ok=True)
     if chapter_title:
         import re as _re
@@ -143,11 +145,20 @@ def run(session_dir: str = ".", on_agent=None):
         existing = [f for f in os.listdir(predicted_dir) if f.endswith(".txt") and not f.endswith("_predictions.txt")]
         base_name = f"predicted_{len(existing) + 1}"
 
-    with open(os.path.join(predicted_dir, f"{base_name}.txt"), "w", encoding="utf-8") as f:
-        f.write(result["generated_text"])
+    temp_chapter = os.path.join(chapters_dir, "predicted_temp.txt")
+    temp_predicted = os.path.join(predicted_dir, f"{base_name}_temp.txt")
+    temp_predictions = os.path.join(predicted_dir, f"{base_name}_predictions_temp.txt")
 
-    with open(os.path.join(predicted_dir, f"{base_name}_predictions.txt"), "w", encoding="utf-8") as f:
+    with open(temp_chapter, "w", encoding="utf-8") as f:
+        f.write(generated_text)
+    with open(temp_predicted, "w", encoding="utf-8") as f:
+        f.write(result["generated_text"])
+    with open(temp_predictions, "w", encoding="utf-8") as f:
         f.write(result["predictions"])
+
+    os.rename(temp_chapter, os.path.join(chapters_dir, "predicted.txt"))
+    os.rename(temp_predicted, os.path.join(predicted_dir, f"{base_name}.txt"))
+    os.rename(temp_predictions, os.path.join(predicted_dir, f"{base_name}_predictions.txt"))
 
     save_prediction(result["predictions"], chapters[-1]["filename"])
 
