@@ -72,6 +72,8 @@ def run(session_dir: str = ".", on_agent=None):
     original_dir = os.path.join(session_dir, "original_chapters")
 
     chapters = load_chapters(chapters_dir)
+    if not chapters and os.path.exists(original_dir):
+        chapters = load_chapters(original_dir)
 
     order_path = os.path.join(session_dir, "order.json")
     if os.path.exists(order_path):
