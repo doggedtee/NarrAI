@@ -64,20 +64,43 @@ def build_graph() -> StateGraph:
     return graph.compile()
 
 
-def run(chapters_dir: str = "chapters/"):
+def run(session_dir: str = ".", on_agent=None):
     init_db()
 
+    chapters_dir = os.path.join(session_dir, "chapters")
+    predicted_dir = os.path.join(session_dir, "predicted_chapters")
+    original_dir = os.path.join(session_dir, "original_chapters")
+
     chapters = load_chapters(chapters_dir)
+
+    order_path = os.path.join(session_dir, "order.json")
+    if os.path.exists(order_path):
+        import json as _json
+        with open(order_path, encoding="utf-8") as f:
+            order = _json.load(f)
+        order_map = {name: i for i, name in enumerate(order)}
+        chapters.sort(key=lambda c: order_map.get(c["filename"], len(order)))
+
     vectorstore = build_vectorstore(chapters)
 
-    original_count = len(os.listdir("original_chapters")) if os.path.exists("original_chapters") else len(chapters)
-    predicted_count = len([f for f in os.listdir("predicted_chapters") if f.endswith(".txt") and "_predictions" not in f]) if os.path.exists("predicted_chapters") else 0
+    original_count = len(os.listdir(original_dir)) if os.path.exists(original_dir) else len(chapters)
+    predicted_count = len([f for f in os.listdir(predicted_dir) if f.endswith(".txt") and "_predictions" not in f]) if os.path.exists(predicted_dir) else 0
     next_chapter_num = original_count + predicted_count + 1
+
+    pipeline_checkpoint_path = os.path.join(session_dir, "data", "pipeline_checkpoint.json")
+    resume_from = None
+    if os.path.exists(pipeline_checkpoint_path):
+        import json as _json2
+        with open(pipeline_checkpoint_path, encoding="utf-8") as f:
+            resume_from = _json2.load(f).get("resume_from")
 
     initial_state = {
         "chapters": chapters,
         "vectorstore": vectorstore,
         "next_chapter_num": next_chapter_num,
+        "session_dir": session_dir,
+        "resume_from": resume_from,
+        "on_agent": on_agent,
         "style_analysis": None,
         "selected_context": None,
         "active_state": None,
@@ -85,6 +108,7 @@ def run(chapters_dir: str = "chapters/"):
         "predictions": None,
         "generated_text": None,
         "critic_feedback": [],
+        "total_tokens": 0,
         "approved": False,
         "iteration": 0
     }
@@ -92,16 +116,35 @@ def run(chapters_dir: str = "chapters/"):
     app = build_graph()
     result = app.invoke(initial_state)
 
-    with open("chapters/predicted.txt", "w", encoding="utf-8") as f:
+    generated_text = result["generated_text"]
+    chapter_title = None
+    if generated_text.startswith("Chapter Title:"):
+        lines = generated_text.split("\n", 2)
+        chapter_title = lines[0].replace("Chapter Title:", "").strip()
+        generated_text = lines[2].strip() if len(lines) > 2 else generated_text
+        result["generated_text"] = generated_text
+        result["chapter_title"] = chapter_title
+
+    with open(os.path.join(chapters_dir, "predicted.txt"), "w", encoding="utf-8") as f:
+        f.write(generated_text)
+
+    os.makedirs(predicted_dir, exist_ok=True)
+    if chapter_title:
+        import re as _re
+        base_name = _re.sub(r'[\\/*?:"<>|]', "", chapter_title).strip()
+        if os.path.exists(os.path.join(predicted_dir, f"{base_name}.txt")):
+            counter = 2
+            while os.path.exists(os.path.join(predicted_dir, f"{base_name} {counter}.txt")):
+                counter += 1
+            base_name = f"{base_name} {counter}"
+    else:
+        existing = [f for f in os.listdir(predicted_dir) if f.endswith(".txt") and not f.endswith("_predictions.txt")]
+        base_name = f"predicted_{len(existing) + 1}"
+
+    with open(os.path.join(predicted_dir, f"{base_name}.txt"), "w", encoding="utf-8") as f:
         f.write(result["generated_text"])
 
-    os.makedirs("predicted_chapters", exist_ok=True)
-    existing = [f for f in os.listdir("predicted_chapters") if f.startswith("predicted_") and f.endswith(".txt") and "_predictions" not in f]
-    next_num = len(existing) + 1
-    with open(f"predicted_chapters/predicted_{next_num}.txt", "w", encoding="utf-8") as f:
-        f.write(result["generated_text"])
-
-    with open(f"predicted_chapters/predicted_{next_num}_predictions.txt", "w", encoding="utf-8") as f:
+    with open(os.path.join(predicted_dir, f"{base_name}_predictions.txt"), "w", encoding="utf-8") as f:
         f.write(result["predictions"])
 
     save_prediction(result["predictions"], chapters[-1]["filename"])
@@ -110,6 +153,8 @@ def run(chapters_dir: str = "chapters/"):
     print(result["predictions"])
     print("\n=== GENERATED CHAPTER ===")
     print(result["generated_text"])
+
+    return result
 
 
 if __name__ == "__main__":

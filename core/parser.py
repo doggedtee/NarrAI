@@ -3,7 +3,7 @@ import os
 def load_chapters(chapters_dir: str) -> list[dict]:
     chapters = []
 
-    files = sorted(os.listdir(chapters_dir))
+    files = sorted(os.listdir(chapters_dir), key=lambda f: os.path.getmtime(os.path.join(chapters_dir, f)))
 
     for file in files:
         if not file.endswith(".txt"):
