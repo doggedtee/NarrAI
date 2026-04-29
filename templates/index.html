@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NarrAI</title>
+<link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+
+<header>
+  <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+  <div class="logo">
+    <div class="logo-dot"></div>
+    NarrAI
+  </div>
+  <div class="header-sep"></div>
+  <div class="theme-switcher">
+    <button class="theme-btn active" data-theme="dark">dark</button>
+    <button class="theme-btn" data-theme="light">light</button>
+    <button class="theme-btn" data-theme="sepia">sepia</button>
+  </div>
+  <button class="action-btn" id="exportEpubBtn">Export .epub</button>
+  <div class="status-badge active" id="statusBadge">ready</div>
+</header>
+
+<div class="layout">
+
+  <aside class="sidebar">
+    <div class="resize-handle" id="resizeHandle"></div>
+
+    <div class="sidebar-section">
+      <div class="section-label">Source Chapters</div>
+      <label class="upload-zone" id="uploadZone">
+        <input type="file" multiple accept=".txt" id="fileInput">
+        <div class="upload-icon">↑</div>
+        <div class="upload-text"><span>Upload files</span> or drag & drop<br>.txt chapters</div>
+      </label>
+    </div>
+
+    <div class="sidebar-section" style="flex:1; overflow:hidden; display:flex; flex-direction:column; padding-bottom:0;">
+      <div class="section-label">Chapters</div>
+      <div class="chapter-list-wrap">
+        <div class="chapter-list" id="chapterList">
+          <div style="font-size:10px; color:var(--text3); padding:8px 4px; text-align:center;">
+            No chapters yet
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="input-group">
+        <div class="input-label">Generate</div>
+        <select class="select-field" id="genCount">
+          <option value="1" selected>1 chapter</option>
+          <option value="3">3 chapters</option>
+          <option value="5">5 chapters</option>
+          <option value="10">10 chapters</option>
+        </select>
+      </div>
+      <button class="generate-btn" id="generateBtn">
+        <span>Generate</span>
+        <span>→</span>
+      </button>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <div class="chapter-header">
+      <div class="chapter-title" id="chapterTitleDisplay">Select a chapter</div>
+      <div class="chapter-meta" id="chapterMetaDisplay"></div>
+      <div class="chapter-actions">
+        <button class="action-btn" id="copyBtn">Copy</button>
+        <button class="action-btn" id="exportBtn">Export .txt</button>
+      </div>
+    </div>
+
+    <div class="content-area" id="contentArea">
+      <div class="empty-state" id="emptyState">
+        <div class="empty-glyph">∿</div>
+        <div class="empty-title">No chapter selected</div>
+        <div class="empty-sub">Upload your source chapters, then generate continuations. The story will find its own way.</div>
+      </div>
+      <div class="chapter-content" id="chapterContent" style="display:none;"></div>
+    </div>
+
+    <div class="agent-bar">
+      <div class="agent-label">Pipeline</div>
+      <div class="agents">
+        <div class="agent-step" id="agentWorldBuilder"><div class="agent-dot"></div> World Builder</div>
+        <div class="agent-arrow">›</div>
+        <div class="agent-step" id="agentCleaner"><div class="agent-dot"></div> Cleaner</div>
+        <div class="agent-arrow">›</div>
+        <div class="agent-step" id="agentPlotPlanner"><div class="agent-dot"></div> Plot Planner</div>
+        <div class="agent-arrow">›</div>
+        <div class="agent-step" id="agentAnalyzer"><div class="agent-dot"></div> Analyzer</div>
+        <div class="agent-arrow">›</div>
+        <div class="agent-step" id="agentPredictor"><div class="agent-dot"></div> Predictor</div>
+        <div class="agent-arrow">›</div>
+        <div class="agent-step" id="agentWriter"><div class="agent-dot"></div> Writer</div>
+        <div class="agent-arrow">›</div>
+        <div class="agent-step" id="agentCritic"><div class="agent-dot"></div> Critic</div>
+      </div>
+      <div class="token-count" id="tokenCount">— tokens</div>
+    </div>
+
+  </main>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-title">Book Title</div>
+    <input class="input-field" type="text" id="modalInput" placeholder="Untitled" />
+    <div class="modal-actions">
+      <button class="action-btn" id="modalCancel">Cancel</button>
+      <button class="generate-btn" id="modalConfirm" style="width:auto;padding:8px 20px;">Export</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<script src="/static/main.js"></script>
+</body>
+</html>
