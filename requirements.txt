@@ -6,6 +6,8 @@ langgraph
 faiss-cpu
 fastapi
 uvicorn
+python-multipart
 python-dotenv
 ebooklib
 sentence-transformers
+json5

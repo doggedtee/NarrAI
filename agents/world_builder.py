@@ -6,15 +6,6 @@ from core.merger import merge_into_whole
 from core.schema import get_schema, select_context
 from core.llm import llm
 
-GENERATED_WORLD_STATE_PATH = "data/generated/world_state.json"
-GENERATED_LOCATION_STATE_PATH = "data/generated/location_state.json"
-GENERATED_CHARACTER_STATE_PATH = "data/generated/character_state.json"
-GENERATED_PLOT_THREADS_PATH = "data/generated/plot_threads.json"
-
-ORIGINAL_WORLD_STATE_PATH = "data/original/world_state.json"
-ORIGINAL_LOCATION_STATE_PATH = "data/original/location_state.json"
-ORIGINAL_CHARACTER_STATE_PATH = "data/original/character_state.json"
-ORIGINAL_PLOT_THREADS_PATH = "data/original/plot_threads.json"
 
 SYSTEM_PROMPT = """You are a story analyst. Extract structured world state updates from story chapters.
 
@@ -75,12 +66,13 @@ def save_json(path: str, data: dict):
 
 
 def parse_json_response(content: str) -> dict:
+    import json5
     content = content.strip()
     if content.startswith("```"):
         content = content.split("```")[1]
         if content.startswith("json"):
             content = content[4:]
-    return json.loads(content)
+    return json5.loads(content)
 
 
 def extract_active_state(chapter_text: str, whole_state: dict, is_last: bool = False) -> dict:
@@ -113,20 +105,43 @@ def extract_active_state(chapter_text: str, whole_state: dict, is_last: bool = F
         SystemMessage(content=system_with_summary),
         HumanMessage(content=human_content)
     ])
-    return parse_json_response(response.content)
+    tokens = response.usage_metadata.get("total_tokens", 0) if response.usage_metadata else 0
+    return parse_json_response(response.content), tokens
 
 
 def world_builder(state: NarrAIState) -> dict:
+    if state.get("on_agent"): state["on_agent"]("world_builder", "active")
     print("[0/5] Building world state...")
+
+    base = state["session_dir"]
+    gen = os.path.join(base, "data", "generated")
+    orig = os.path.join(base, "data", "original")
+    pipeline_state_path = os.path.join(base, "data", "pipeline_state.json")
+
+    if state.get("resume_from") in ("cleaner", "plot_planner"):
+        print("  Resuming — skipping world_builder.")
+        cached = load_json(pipeline_state_path)
+        whole_state = {
+            "plot_threads": load_json(os.path.join(gen, "plot_threads.json")),
+            "world": load_json(os.path.join(gen, "world_state.json")),
+            "characters": load_json(os.path.join(gen, "character_state.json")),
+            "locations": load_json(os.path.join(gen, "location_state.json")),
+        }
+        if state.get("on_agent"): state["on_agent"]("world_builder", "done")
+        return {
+            "selected_context": select_context(whole_state),
+            "active_state": cached.get("active_state", {}),
+            "chapter_summary": cached.get("chapter_summary", "")
+        }
 
     has_predicted = any(c["filename"].startswith("predicted") for c in state["chapters"])
 
     if has_predicted:
         whole_state = {
-            "plot_threads": load_json(GENERATED_PLOT_THREADS_PATH),
-            "world": load_json(GENERATED_WORLD_STATE_PATH),
-            "characters": load_json(GENERATED_CHARACTER_STATE_PATH),
-            "locations": load_json(GENERATED_LOCATION_STATE_PATH),
+            "plot_threads": load_json(os.path.join(gen, "plot_threads.json")),
+            "world": load_json(os.path.join(gen, "world_state.json")),
+            "characters": load_json(os.path.join(gen, "character_state.json")),
+            "locations": load_json(os.path.join(gen, "location_state.json")),
         }
     else:
         whole_state = {
@@ -136,38 +151,67 @@ def world_builder(state: NarrAIState) -> dict:
             "locations": {}
         }
 
+    checkpoint_path = os.path.join(base, "data", "checkpoint.json")
+    checkpoint = load_json(checkpoint_path)
+    start_from = checkpoint.get("processed", 0) if not has_predicted else 0
+
+    if start_from > 0:
+        print(f"  Resuming from chapter {start_from + 1}...")
+        whole_state = {
+            "plot_threads": load_json(os.path.join(gen, "plot_threads.json")),
+            "world": load_json(os.path.join(gen, "world_state.json")),
+            "characters": load_json(os.path.join(gen, "character_state.json")),
+            "locations": load_json(os.path.join(gen, "location_state.json")),
+        }
+
     active_state = {}
     chapter_summary = None
+    total_tokens = 0
 
     for i, chapter in enumerate(state["chapters"]):
+        if i < start_from:
+            continue
         print(f"  Processing chapter {i + 1}/{len(state['chapters'])}: {chapter['filename']}")
         try:
             is_last = i == len(state["chapters"]) - 1
-            active_state = extract_active_state(chapter["text"], whole_state, is_last)
+            active_state, tokens = extract_active_state(chapter["text"], whole_state, is_last)
+            total_tokens += tokens
             chapter_summary = active_state.pop("chapter_summary", chapter_summary)
             print("  Active state:")
             print(json.dumps(active_state, indent=2, ensure_ascii=False))
             whole_state = merge_into_whole(active_state, whole_state)
+            os.makedirs(gen, exist_ok=True)
+            save_json(os.path.join(gen, "world_state.json"), whole_state["world"])
+            save_json(os.path.join(gen, "character_state.json"), whole_state["characters"])
+            save_json(os.path.join(gen, "location_state.json"), whole_state["locations"])
+            save_json(os.path.join(gen, "plot_threads.json"), whole_state["plot_threads"])
+            save_json(checkpoint_path, {"processed": i + 1})
         except Exception as e:
             print(f"  Error processing chapter {i + 1}: {e}")
-            break
+            if state.get("on_agent"):
+                state["on_agent"]("world_builder", f"error:Chapter {i + 1} failed — {e}")
+            return {"world_builder_error": True}
+
 
     if not has_predicted:
-        os.makedirs("data/original", exist_ok=True)
-        save_json(ORIGINAL_WORLD_STATE_PATH, whole_state["world"])
-        save_json(ORIGINAL_CHARACTER_STATE_PATH, whole_state["characters"])
-        save_json(ORIGINAL_LOCATION_STATE_PATH, whole_state["locations"])
-        save_json(ORIGINAL_PLOT_THREADS_PATH, whole_state["plot_threads"])
-        os.makedirs("original_chapters", exist_ok=True)
+        os.makedirs(orig, exist_ok=True)
+        save_json(os.path.join(orig, "world_state.json"), whole_state["world"])
+        save_json(os.path.join(orig, "character_state.json"), whole_state["characters"])
+        save_json(os.path.join(orig, "location_state.json"), whole_state["locations"])
+        save_json(os.path.join(orig, "plot_threads.json"), whole_state["plot_threads"])
+        original_chapters_dir = os.path.join(base, "original_chapters")
+        os.makedirs(original_chapters_dir, exist_ok=True)
         for chapter in state["chapters"]:
-            os.rename(os.path.join("chapters", chapter["filename"]),
-                      os.path.join("original_chapters", chapter["filename"]))
+            src = os.path.join(base, "chapters", chapter["filename"])
+            dst = os.path.join(original_chapters_dir, chapter["filename"])
+            if os.path.exists(src):
+                os.rename(src, dst)
 
-    os.makedirs("data/generated", exist_ok=True)
-    save_json(GENERATED_WORLD_STATE_PATH, whole_state["world"])
-    save_json(GENERATED_CHARACTER_STATE_PATH, whole_state["characters"])
-    save_json(GENERATED_LOCATION_STATE_PATH, whole_state["locations"])
-    save_json(GENERATED_PLOT_THREADS_PATH, whole_state["plot_threads"])
+    os.makedirs(gen, exist_ok=True)
+    save_json(os.path.join(gen, "world_state.json"), whole_state["world"])
+    save_json(os.path.join(gen, "character_state.json"), whole_state["characters"])
+    save_json(os.path.join(gen, "location_state.json"), whole_state["locations"])
+    save_json(os.path.join(gen, "plot_threads.json"), whole_state["plot_threads"])
 
     selected_context = select_context(whole_state)
     active_state.pop("plot_threads", None)
@@ -177,8 +221,16 @@ def world_builder(state: NarrAIState) -> dict:
             if name in selected_context.get(section, {}):
                 active_state[section].pop(name)
 
+    if os.path.exists(checkpoint_path):
+        os.remove(checkpoint_path)
+    pipeline_checkpoint_path = os.path.join(base, "data", "pipeline_checkpoint.json")
+    if os.path.exists(pipeline_checkpoint_path):
+        os.remove(pipeline_checkpoint_path)
+    save_json(pipeline_state_path, {"active_state": active_state, "chapter_summary": chapter_summary})
+    if state.get("on_agent"): state["on_agent"]("world_builder", "done")
     return {
         "selected_context": selected_context,
         "active_state": active_state,
-        "chapter_summary": chapter_summary
+        "chapter_summary": chapter_summary,
+        "total_tokens": total_tokens
     }

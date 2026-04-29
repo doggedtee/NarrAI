@@ -5,10 +5,11 @@ from core.llm import llm
 
 SYSTEM_PROMPT = """You are a story analyst. Based on the current story state, predict what will happen next.
 
-Provide 3-5 concise plot predictions — one sentence each. Be brief. You CAN include new characters and locations in your predictions."""
+Provide 3-5 detailed plot predictions. For each prediction, describe what happens, who is involved, and what consequences it may have. You CAN include new characters and locations in your predictions."""
 
 
 def predictor(state: NarrAIState) -> dict:
+    if state.get("on_agent"): state["on_agent"]("predictor", "active")
     print("[2/5] Running predictor...")
 
     human_content = f"""Plot threads:
@@ -30,4 +31,6 @@ Last chapter summary:
         SystemMessage(content=SYSTEM_PROMPT),
         HumanMessage(content=human_content)
     ])
-    return {"predictions": response.content}
+    if state.get("on_agent"): state["on_agent"]("predictor", "done")
+    tokens = response.usage_metadata.get("total_tokens", 0) if response.usage_metadata else 0
+    return {"predictions": response.content, "total_tokens": tokens}

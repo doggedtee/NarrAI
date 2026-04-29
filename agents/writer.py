@@ -5,10 +5,16 @@ from core.llm import llm
 
 SYSTEM_PROMPT = """You are a ghost writer. Write the next chapter of a story in the exact style of the original author.
 
-Match the author's voice, pacing, and tone precisely. Always write a complete chapter with a proper ending — never cut off mid-sentence or mid-scene. Write the NEXT chapter as a standalone chapter that begins after the last chapter ends. Do not continue mid-scene — start fresh as a new chapter."""
+Match the author's voice, pacing, and tone precisely. Always write a complete chapter with a proper ending — never cut off mid-sentence or mid-scene. Write the NEXT chapter as a standalone chapter that begins after the last chapter ends. Do not continue mid-scene — start fresh as a new chapter. The chapter MUST be more than 2000 words.
+
+Start your response with the chapter title on the first line in this format:
+Chapter Title: [title]
+
+Then write the chapter text after a blank line. After the blank line there must be only the chapter text — no headers, labels, or metadata."""
 
 
 def writer(state: NarrAIState) -> dict:
+    if state.get("on_agent"): state["on_agent"]("writer", "active")
     print("[4/5] Running writer...")
 
     static_context = f"""Style analysis:
@@ -45,4 +51,6 @@ Last chapter summary:
             {"type": "text", "text": dynamic}
         ])
     ])
-    return {"generated_text": response.content}
+    if state.get("on_agent"): state["on_agent"]("writer", "done")
+    tokens = response.usage_metadata.get("total_tokens", 0) if response.usage_metadata else 0
+    return {"generated_text": response.content, "total_tokens": tokens}

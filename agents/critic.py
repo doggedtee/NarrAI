@@ -18,6 +18,7 @@ FEEDBACK: brief feedback in 2-3 sentences"""
 
 
 def critic(state: NarrAIState) -> dict:
+    if state.get("on_agent"): state["on_agent"]("critic", "active")
     print("[5/5] Running critic...")
 
     static_context = f"""Style analysis:
@@ -50,8 +51,11 @@ Current scene state:
     print(f"  Approved: {approved}")
     print(f"  Feedback: {feedback}")
 
+    if state.get("on_agent"): state["on_agent"]("critic", "done")
+    tokens = response.usage_metadata.get("total_tokens", 0) if response.usage_metadata else 0
     return {
         "approved": approved,
         "critic_feedback": [feedback],
-        "iteration": state["iteration"] + 1
+        "iteration": state["iteration"] + 1,
+        "total_tokens": tokens
     }

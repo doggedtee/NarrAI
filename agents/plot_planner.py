@@ -1,14 +1,10 @@
 import json
+import json5
 import os
 from langchain_core.messages import SystemMessage, HumanMessage
 from core.state import NarrAIState
 from core.llm import llm
 
-PLOT_PLAN_PATH = "data/generated/plot_plan.json"
-WORLD_STATE_PATH = "data/generated/world_state.json"
-CHARACTER_STATE_PATH = "data/generated/character_state.json"
-LOCATION_STATE_PATH = "data/generated/location_state.json"
-PLOT_THREADS_PATH = "data/generated/plot_threads.json"
 
 SYSTEM_PROMPT = """You are a creative story planner. Design high-level story arc milestones based on the current world state.
 
@@ -37,12 +33,18 @@ def load_json(path: str) -> dict:
         return json.load(f)
 
 
-def build_planner_context() -> dict:
-    characters = load_json(CHARACTER_STATE_PATH)
-    locations = load_json(LOCATION_STATE_PATH)
+def save_json(path: str, data: dict):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+
+def build_planner_context(gen: str) -> dict:
+    characters = load_json(os.path.join(gen, "character_state.json"))
+    locations = load_json(os.path.join(gen, "location_state.json"))
     return {
-        "plot_threads": load_json(PLOT_THREADS_PATH),
-        "world": load_json(WORLD_STATE_PATH),
+        "plot_threads": load_json(os.path.join(gen, "plot_threads.json")),
+        "world": load_json(os.path.join(gen, "world_state.json")),
         "characters": {
             name: {k: v for k, v in data.items() if k in ("current_location", "status")}
             for name, data in characters.items()
@@ -55,9 +57,11 @@ def build_planner_context() -> dict:
 
 
 def plot_planner(state: NarrAIState) -> dict:
+    if state.get("on_agent"): state["on_agent"]("plot_planner", "active")
     print("[1/6] Running plot planner...")
 
-    context = build_planner_context()
+    gen = os.path.join(state["session_dir"], "data", "generated")
+    context = build_planner_context(gen)
 
     human_content = f"""Plot threads:
 {json.dumps(context["plot_threads"], indent=2, ensure_ascii=False)}
@@ -78,22 +82,31 @@ Last chapter summary:
         SystemMessage(content=SYSTEM_PROMPT),
         HumanMessage(content=human_content)
     ])
-    content = response.content.strip()
-    if content.startswith("```"):
-        content = content.split("```")[1]
-        if content.startswith("json"):
-            content = content[4:]
-    result = json.loads(content)
+    try:
+        content = response.content.strip()
+        if content.startswith("```"):
+            content = content.split("```")[1]
+            if content.startswith("json"):
+                content = content[4:]
+        result = json5.loads(content)
+    except Exception as e:
+        print(f"  Plot planner error: {e}")
+        save_json(os.path.join(state["session_dir"], "data", "pipeline_checkpoint.json"), {"resume_from": "plot_planner"})
+        if state.get("on_agent"): state["on_agent"]("plot_planner", f"error:Plot planner failed — {e}")
+        tokens = response.usage_metadata.get("total_tokens", 0) if response.usage_metadata else 0
+        return {"total_tokens": tokens}
 
     plan = {"arc_name": result.get("arc_name", ""), "planned": result.get("planned", {})}
-    with open(PLOT_PLAN_PATH, "w", encoding="utf-8") as f:
+    with open(os.path.join(gen, "plot_plan.json"), "w", encoding="utf-8") as f:
         json.dump(plan, f, indent=2, ensure_ascii=False)
 
-    plot_threads = load_json(PLOT_THREADS_PATH)
+    plot_threads = load_json(os.path.join(gen, "plot_threads.json"))
     plot_threads["planned"] = plan["planned"]
-    with open(PLOT_THREADS_PATH, "w", encoding="utf-8") as f:
+    with open(os.path.join(gen, "plot_threads.json"), "w", encoding="utf-8") as f:
         json.dump(plot_threads, f, indent=2, ensure_ascii=False)
 
     selected_context = dict(state["selected_context"])
     selected_context["plot_threads"] = plot_threads
-    return {"selected_context": selected_context}
+    if state.get("on_agent"): state["on_agent"]("plot_planner", "done")
+    tokens = response.usage_metadata.get("total_tokens", 0) if response.usage_metadata else 0
+    return {"selected_context": selected_context, "total_tokens": tokens}

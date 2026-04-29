@@ -1,13 +1,10 @@
 import json
+import json5
 import os
 from langchain_core.messages import SystemMessage, HumanMessage
 from core.state import NarrAIState
 from core.llm import llm
 
-GENERATED_WORLD_STATE_PATH = "data/generated/world_state.json"
-GENERATED_CHARACTER_STATE_PATH = "data/generated/character_state.json"
-GENERATED_LOCATION_STATE_PATH = "data/generated/location_state.json"
-GENERATED_PLOT_THREADS_PATH = "data/generated/plot_threads.json"
 
 SYSTEM_PROMPT = """You are a story continuity editor. Your job is to clean up accumulated world state data by removing elements that are no longer relevant to the ongoing story.
 
@@ -67,16 +64,24 @@ def build_lists_snapshot(world: dict, characters: dict, locations: dict) -> dict
 
 
 def cleaner(state: NarrAIState) -> dict:
+    if state.get("on_agent"): state["on_agent"]("cleaner", "active")
     print("[cleaner] Running cleaner...")
 
-    world = load_json(GENERATED_WORLD_STATE_PATH)
-    characters = load_json(GENERATED_CHARACTER_STATE_PATH)
-    locations = load_json(GENERATED_LOCATION_STATE_PATH)
-    plot_threads = load_json(GENERATED_PLOT_THREADS_PATH)
+    gen = os.path.join(state["session_dir"], "data", "generated")
+
+    if state.get("resume_from") == "plot_planner":
+        print("  Resuming — skipping cleaner.")
+        if state.get("on_agent"): state["on_agent"]("cleaner", "done")
+        return {}
+    world = load_json(os.path.join(gen, "world_state.json"))
+    characters = load_json(os.path.join(gen, "character_state.json"))
+    locations = load_json(os.path.join(gen, "location_state.json"))
+    plot_threads = load_json(os.path.join(gen, "plot_threads.json"))
 
     lists_snapshot = build_lists_snapshot(world, characters, locations)
     if not lists_snapshot:
         print("  Nothing to clean.")
+        if state.get("on_agent"): state["on_agent"]("cleaner", "done")
         return {}
 
     human_content = f"""Current plot threads (use this to judge relevance):
@@ -90,30 +95,38 @@ List fields to review:
         HumanMessage(content=human_content)
     ])
 
-    content = response.content.strip()
-    if content.startswith("```"):
-        content = content.split("```")[1]
-        if content.startswith("json"):
-            content = content[4:]
-    result = json.loads(content)
+    try:
+        content = response.content.strip()
+        if content.startswith("```"):
+            content = content.split("```")[1]
+            if content.startswith("json"):
+                content = content[4:]
+        result = json5.loads(content)
+    except Exception as e:
+        print(f"  Cleaner error: {e}")
+        save_json(os.path.join(state["session_dir"], "data", "pipeline_checkpoint.json"), {"resume_from": "cleaner"})
+        if state.get("on_agent"): state["on_agent"]("cleaner", f"error:Cleaner failed — {e}")
+        return {}
 
     from core.merger import merge_fields
 
     if result.get("world"):
         merge_fields(world, result["world"])
-        save_json(GENERATED_WORLD_STATE_PATH, world)
+        save_json(os.path.join(gen, "world_state.json"), world)
 
     if result.get("characters"):
         for name, data in result["characters"].items():
             if name in characters:
                 merge_fields(characters[name], data)
-        save_json(GENERATED_CHARACTER_STATE_PATH, characters)
+        save_json(os.path.join(gen, "character_state.json"), characters)
 
     if result.get("locations"):
         for name, data in result["locations"].items():
             if name in locations:
                 merge_fields(locations[name], data)
-        save_json(GENERATED_LOCATION_STATE_PATH, locations)
+        save_json(os.path.join(gen, "location_state.json"), locations)
 
     print("  Cleanup done.")
-    return {}
+    if state.get("on_agent"): state["on_agent"]("cleaner", "done")
+    tokens = response.usage_metadata.get("total_tokens", 0) if response.usage_metadata else 0
+    return {"total_tokens": tokens}
