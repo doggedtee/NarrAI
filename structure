@@ -1,23 +1,37 @@
 NarrAI/
-├── chapters/          # сюда кладём .txt файлы глав
-├── data/
-│   ├── world_state.json      # глобальное состояние мира
-│   ├── character_state.json  # состояние персонажей
-│   ├── location_state.json   # состояние локаций
-│   └── narrai.db             # SQLite база
+├── sessions/                  # per-user isolated workspaces (auto-created)
+│   └── {session_id}/
+│       ├── chapters/          # uploaded source chapters
+│       ├── original_chapters/ # source chapters after first generation
+│       ├── predicted_chapters/# generated chapters
+│       ├── data/
+│       │   ├── generated/     # world_state, character_state, location_state, plot_threads
+│       │   ├── original/      # state snapshot before first generation
+│       │   └── pipeline_state.json
+│       └── order.json         # drag-and-drop chapter order
 ├── agents/
 │   ├── world_builder.py
+│   ├── cleaner.py
+│   ├── plot_planner.py
 │   ├── analyzer.py
 │   ├── predictor.py
 │   ├── writer.py
 │   └── critic.py
 ├── core/
-│   ├── parser.py      # читает .txt файлы
-│   └── state.py       # LangGraph state
+│   ├── parser.py
+│   ├── state.py
+│   ├── llm.py
+│   ├── merger.py
+│   └── schema.py
 ├── api/
-│   └── main.py        # FastAPI
+│   └── main.py
+├── static/
+│   ├── main.js
+│   └── styles.css
+├── templates/
+│   └── index.html
 ├── db/
-│   └── database.py    # SQLite логика
-├── .env               # API ключи
+│   └── database.py
+├── .env
 ├── requirements.txt
-└── main.py            # точка входа
+└── main.py
