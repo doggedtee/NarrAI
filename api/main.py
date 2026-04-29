@@ -74,8 +74,10 @@ async def upload(request: Request, files: list[UploadFile] = File(...)):
 
     saved = []
     for file in files:
-        path = os.path.join(chapters_dir, file.filename)
         content = await file.read()
+        if not is_host(request) and len(content.decode("utf-8", errors="ignore").split()) > 3000:
+            raise HTTPException(status_code=403, detail="Demo limit: chapter must be under 3000 words.")
+        path = os.path.join(chapters_dir, file.filename)
         with open(path, "wb") as f:
             f.write(content)
         saved.append(file.filename)
