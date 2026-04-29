@@ -10,6 +10,8 @@ NarrAI reads existing chapters of a book and builds a living model of the story 
 
 The system uses a multi-agent pipeline built on LangGraph:
 
+![NarrAI Pipeline](narrai-pipeline.svg)
+
 - **World Builder** — reads all existing chapters and builds a structured world state: characters, locations, world facts, and plot threads.
 - **Cleaner** — at arc boundaries, removes stale list items from the world state using semantic similarity to keep context lean.
 - **Plot Planner** — at arc boundaries, plans long-term story arc milestones stored as `planned` threads for future chapters.
@@ -35,7 +37,7 @@ Only characters and locations relevant to the main plot thread are passed to the
 |-------|----|----|-----|
 | Predictor | ~9.7k | ~1.5k | ~1.5k |
 | Writer | ~10.7k | ~2.6k | ~2.6k |
-| **Total per chapter** | **grows linearly** | **~15k** | **~13-17k** |
+| **Total per chapter** | **grows linearly** | **~15k** | **~18-20k** |
 
 v3 adds prompt caching on system prompts and static context in the writer→critic loop, reducing repeated token costs on rewrites. The writer is instructed to always produce a minimum of 2000 words per chapter.
 
@@ -67,6 +69,8 @@ uvicorn api.main:app --reload
 ```
 
 Open `http://localhost:8000` in your browser. Upload chapter `.txt` files via drag-and-drop or the file picker, reorder them if needed, then click **Generate**. Agent progress streams in real time. Chapters can be exported as `.txt` or bundled into an `.epub`.
+
+**Keyboard shortcuts:** `←` / `→` navigate between chapters, `Esc` toggles the sidebar.
 
 Each browser session gets an isolated workspace that expires after 24 hours of inactivity. A demo limit applies to guest sessions: 1 source chapter and 1 generated chapter.
 

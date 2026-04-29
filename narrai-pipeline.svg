@@ -1,0 +1,171 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 420" width="900" height="420" font-family="'Courier New', monospace">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0d0d0f"/>
+      <stop offset="100%" style="stop-color:#111318"/>
+    </linearGradient>
+    <linearGradient id="nodeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1d26"/>
+      <stop offset="100%" style="stop-color:#13151c"/>
+    </linearGradient>
+    <linearGradient id="activeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e2235"/>
+      <stop offset="100%" style="stop-color:#161926"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softglow">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#4a6fa5"/>
+    </marker>
+    <marker id="arrowOrange" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#c97b3a"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="900" height="420" fill="url(#bg)" rx="12"/>
+
+  <!-- Subtle grid -->
+  <g opacity="0.03" stroke="#ffffff" stroke-width="0.5">
+    <line x1="0" y1="60" x2="900" y2="60"/>
+    <line x1="0" y1="120" x2="900" y2="120"/>
+    <line x1="0" y1="180" x2="900" y2="180"/>
+    <line x1="0" y1="240" x2="900" y2="240"/>
+    <line x1="0" y1="300" x2="900" y2="300"/>
+    <line x1="0" y1="360" x2="900" y2="360"/>
+    <line x1="100" y1="0" x2="100" y2="420"/>
+    <line x1="200" y1="0" x2="200" y2="420"/>
+    <line x1="300" y1="0" x2="300" y2="420"/>
+    <line x1="400" y1="0" x2="400" y2="420"/>
+    <line x1="500" y1="0" x2="500" y2="420"/>
+    <line x1="600" y1="0" x2="600" y2="420"/>
+    <line x1="700" y1="0" x2="700" y2="420"/>
+    <line x1="800" y1="0" x2="800" y2="420"/>
+  </g>
+
+  <!-- Title -->
+  <text x="450" y="36" text-anchor="middle" fill="#e8e8f0" font-size="15" font-weight="bold" letter-spacing="4">NARRAI PIPELINE</text>
+  <line x1="200" y1="44" x2="700" y2="44" stroke="#2a2d3e" stroke-width="1"/>
+
+  <!-- INPUT -->
+  <rect x="30" y="170" width="90" height="80" rx="6" fill="url(#nodeGrad)" stroke="#2a3a5a" stroke-width="1.5"/>
+  <text x="75" y="198" text-anchor="middle" fill="#6b8fc2" font-size="9" letter-spacing="2">INPUT</text>
+  <text x="75" y="218" text-anchor="middle" fill="#c8d4e8" font-size="11" font-weight="bold">Chapters</text>
+  <text x="75" y="234" text-anchor="middle" fill="#4a5a72" font-size="8">.txt files</text>
+
+  <!-- Arrow INPUT → World Builder -->
+  <line x1="120" y1="210" x2="148" y2="210" stroke="#4a6fa5" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- WORLD BUILDER -->
+  <rect x="150" y="155" width="100" height="110" rx="6" fill="url(#activeGrad)" stroke="#3a5a8a" stroke-width="1.5"/>
+  <rect x="150" y="155" width="100" height="3" rx="2" fill="#4a7abf"/>
+  <text x="200" y="185" text-anchor="middle" fill="#6b8fc2" font-size="8" letter-spacing="2">01</text>
+  <text x="200" y="203" text-anchor="middle" fill="#c8d4e8" font-size="10" font-weight="bold">World</text>
+  <text x="200" y="218" text-anchor="middle" fill="#c8d4e8" font-size="10" font-weight="bold">Builder</text>
+  <text x="200" y="238" text-anchor="middle" fill="#4a6a8a" font-size="7.5">characters</text>
+  <text x="200" y="251" text-anchor="middle" fill="#4a6a8a" font-size="7.5">locations · world</text>
+
+  <!-- Arrow WB → Cleaner -->
+  <line x1="250" y1="210" x2="278" y2="210" stroke="#4a6fa5" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- CLEANER -->
+  <rect x="280" y="170" width="90" height="80" rx="6" fill="url(#nodeGrad)" stroke="#2a3a5a" stroke-width="1.5"/>
+  <rect x="280" y="170" width="90" height="3" rx="2" fill="#3a5a7a"/>
+  <text x="325" y="198" text-anchor="middle" fill="#6b8fc2" font-size="8" letter-spacing="2">02</text>
+  <text x="325" y="216" text-anchor="middle" fill="#c8d4e8" font-size="10" font-weight="bold">Cleaner</text>
+  <text x="325" y="234" text-anchor="middle" fill="#4a6a8a" font-size="7.5">arc boundaries</text>
+
+  <!-- Arrow Cleaner → Plot Planner -->
+  <line x1="370" y1="210" x2="398" y2="210" stroke="#4a6fa5" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- PLOT PLANNER -->
+  <rect x="400" y="155" width="100" height="110" rx="6" fill="url(#activeGrad)" stroke="#3a5a8a" stroke-width="1.5"/>
+  <rect x="400" y="155" width="100" height="3" rx="2" fill="#4a7abf"/>
+  <text x="450" y="185" text-anchor="middle" fill="#6b8fc2" font-size="8" letter-spacing="2">03</text>
+  <text x="450" y="203" text-anchor="middle" fill="#c8d4e8" font-size="10" font-weight="bold">Plot</text>
+  <text x="450" y="218" text-anchor="middle" fill="#c8d4e8" font-size="10" font-weight="bold">Planner</text>
+  <text x="450" y="238" text-anchor="middle" fill="#4a6a8a" font-size="7.5">arc milestones</text>
+  <text x="450" y="251" text-anchor="middle" fill="#4a6a8a" font-size="7.5">plot threads</text>
+
+  <!-- Arrow PP → Analyzer -->
+  <line x1="500" y1="210" x2="528" y2="210" stroke="#4a6fa5" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ANALYZER -->
+  <rect x="530" y="170" width="90" height="80" rx="6" fill="url(#nodeGrad)" stroke="#2a3a5a" stroke-width="1.5"/>
+  <rect x="530" y="170" width="90" height="3" rx="2" fill="#3a5a7a"/>
+  <text x="575" y="198" text-anchor="middle" fill="#6b8fc2" font-size="8" letter-spacing="2">04</text>
+  <text x="575" y="216" text-anchor="middle" fill="#c8d4e8" font-size="10" font-weight="bold">Analyzer</text>
+  <text x="575" y="234" text-anchor="middle" fill="#4a6a8a" font-size="7.5">style · RAG cached</text>
+
+  <!-- Arrow Analyzer → Predictor -->
+  <line x1="620" y1="210" x2="648" y2="210" stroke="#4a6fa5" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- PREDICTOR -->
+  <rect x="650" y="170" width="90" height="80" rx="6" fill="url(#nodeGrad)" stroke="#2a3a5a" stroke-width="1.5"/>
+  <rect x="650" y="170" width="90" height="3" rx="2" fill="#3a5a7a"/>
+  <text x="695" y="198" text-anchor="middle" fill="#6b8fc2" font-size="8" letter-spacing="2">05</text>
+  <text x="695" y="216" text-anchor="middle" fill="#c8d4e8" font-size="10" font-weight="bold">Predictor</text>
+  <text x="695" y="234" text-anchor="middle" fill="#4a6a8a" font-size="7.5">what happens next</text>
+
+  <!-- Arrow Predictor → Writer (going right and down slightly) -->
+  <line x1="740" y1="210" x2="768" y2="210" stroke="#4a6fa5" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- WRITER + CRITIC loop box -->
+  <rect x="768" y="140" width="112" height="140" rx="8" fill="#0f1118" stroke="#c97b3a" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <text x="824" y="160" text-anchor="middle" fill="#c97b3a" font-size="8" letter-spacing="2">LOOP ×3</text>
+
+  <!-- WRITER -->
+  <rect x="776" y="165" width="96" height="44" rx="5" fill="url(#activeGrad)" stroke="#4a5a3a" stroke-width="1"/>
+  <text x="824" y="183" text-anchor="middle" fill="#a0b86a" font-size="8" letter-spacing="2">06</text>
+  <text x="824" y="199" text-anchor="middle" fill="#c8d4e8" font-size="10" font-weight="bold">Writer</text>
+
+  <!-- CRITIC -->
+  <rect x="776" y="220" width="96" height="44" rx="5" fill="url(#activeGrad)" stroke="#5a3a3a" stroke-width="1"/>
+  <text x="824" y="238" text-anchor="middle" fill="#c26b6b" font-size="8" letter-spacing="2">07</text>
+  <text x="824" y="254" text-anchor="middle" fill="#c8d4e8" font-size="10" font-weight="bold">Critic</text>
+
+  <!-- Writer → Critic arrow -->
+  <line x1="824" y1="209" x2="824" y2="218" stroke="#c97b3a" stroke-width="1.5" marker-end="url(#arrowOrange)"/>
+
+  <!-- Critic feedback loop back to Writer -->
+  <path d="M776,242 Q756,242 756,187 Q756,165 776,165" fill="none" stroke="#c97b3a" stroke-width="1.2" stroke-dasharray="3,2" marker-end="url(#arrowOrange)"/>
+  <text x="748" y="208" text-anchor="middle" fill="#c97b3a" font-size="7.5" transform="rotate(-90, 748, 208)">feedback</text>
+
+  <!-- OUTPUT arrow -->
+  <line x1="872" y1="242" x2="900" y2="242" stroke="#4a6fa5" stroke-width="1.5"/>
+
+  <!-- World State box (bottom) -->
+  <rect x="150" y="305" width="480" height="70" rx="6" fill="#0d1018" stroke="#2a3a5a" stroke-width="1" stroke-dasharray="5,3"/>
+  <text x="390" y="325" text-anchor="middle" fill="#3a5a7a" font-size="8" letter-spacing="3">WORLD STATE</text>
+  <text x="220" y="348" text-anchor="middle" fill="#4a6a8a" font-size="9">plot_threads</text>
+  <text x="330" y="348" text-anchor="middle" fill="#4a6a8a" font-size="9">characters</text>
+  <text x="440" y="348" text-anchor="middle" fill="#4a6a8a" font-size="9">locations</text>
+  <text x="550" y="348" text-anchor="middle" fill="#4a6a8a" font-size="9">world facts</text>
+  <line x1="270" y1="340" x2="270" y2="356" stroke="#1a2a3a" stroke-width="1"/>
+  <line x1="385" y1="340" x2="385" y2="356" stroke="#1a2a3a" stroke-width="1"/>
+  <line x1="495" y1="340" x2="495" y2="356" stroke="#1a2a3a" stroke-width="1"/>
+
+  <!-- Vertical connector from pipeline to world state -->
+  <line x1="390" y1="265" x2="390" y2="305" stroke="#2a3a5a" stroke-width="1" stroke-dasharray="3,2"/>
+  <circle cx="390" cy="265" r="2.5" fill="#2a3a5a"/>
+
+  <!-- Token efficiency badge -->
+  <rect x="30" y="305" width="108" height="70" rx="6" fill="#0d1018" stroke="#2a3a4a" stroke-width="1"/>
+  <text x="84" y="325" text-anchor="middle" fill="#3a5a6a" font-size="8" letter-spacing="2">EFFICIENCY</text>
+  <text x="84" y="345" text-anchor="middle" fill="#6ab8c2" font-size="11" font-weight="bold">~18-20k</text>
+  <text x="84" y="360" text-anchor="middle" fill="#4a6a72" font-size="8">tokens / chapter</text>
+  <text x="84" y="372" text-anchor="middle" fill="#2a4a52" font-size="7.5">fixed regardless</text>
+
+  <!-- Stack badge -->
+  <rect x="650" y="305" width="220" height="70" rx="6" fill="#0d1018" stroke="#2a3a4a" stroke-width="1"/>
+  <text x="760" y="325" text-anchor="middle" fill="#3a5a6a" font-size="8" letter-spacing="2">STACK</text>
+  <text x="760" y="344" text-anchor="middle" fill="#8a9ab8" font-size="8.5">FastAPI · LangGraph · LangChain</text>
+  <text x="760" y="358" text-anchor="middle" fill="#8a9ab8" font-size="8.5">Claude API · Sentence Transformers</text>
+  <text x="760" y="372" text-anchor="middle" fill="#8a9ab8" font-size="8.5">SQLite · Prompt Caching</text>
+</svg>
