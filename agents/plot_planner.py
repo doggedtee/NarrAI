@@ -61,6 +61,15 @@ def plot_planner(state: NarrAIState) -> dict:
     print("[1/6] Running plot planner...")
 
     gen = os.path.join(state["session_dir"], "data", "generated")
+
+    if state.get("resume_from") in ("analyzer", "predictor", "writer"):
+        print("  Resuming — skipping plot_planner.")
+        plot_threads = load_json(os.path.join(gen, "plot_threads.json"))
+        selected_context = dict(state["selected_context"])
+        selected_context["plot_threads"] = plot_threads
+        if state.get("on_agent"): state["on_agent"]("plot_planner", "done")
+        return {"selected_context": selected_context}
+
     context = build_planner_context(gen)
 
     human_content = f"""Plot threads:
@@ -94,7 +103,7 @@ Last chapter summary:
         save_json(os.path.join(state["session_dir"], "data", "pipeline_checkpoint.json"), {"resume_from": "plot_planner"})
         if state.get("on_agent"): state["on_agent"]("plot_planner", f"error:Plot planner failed — {e}")
         tokens = response.usage_metadata.get("total_tokens", 0) if response.usage_metadata else 0
-        return {"total_tokens": tokens}
+        return {"pipeline_error": True, "total_tokens": tokens}
 
     plan = {"arc_name": result.get("arc_name", ""), "planned": result.get("planned", {})}
     with open(os.path.join(gen, "plot_plan.json"), "w", encoding="utf-8") as f:

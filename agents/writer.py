@@ -1,4 +1,5 @@
 import json
+import os
 from langchain_core.messages import SystemMessage, HumanMessage
 from core.state import NarrAIState
 from core.llm import llm
@@ -11,6 +12,13 @@ Start your response with the chapter title on the first line in this format:
 Chapter Title: [title]
 
 Then write the chapter text after a blank line. After the blank line there must be only the chapter text — no headers, labels, or metadata."""
+
+
+def save_checkpoint(session_dir: str, stage: str):
+    path = os.path.join(session_dir, "data", "pipeline_checkpoint.json")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump({"resume_from": stage}, f)
 
 
 def writer(state: NarrAIState) -> dict:
@@ -44,13 +52,20 @@ Last chapter summary:
 
     dynamic = f"Write chapter {state['next_chapter_num']}.{feedback_section}"
 
-    response = llm.invoke([
-        SystemMessage(content=[{"type": "text", "text": SYSTEM_PROMPT, "cache_control": {"type": "ephemeral"}}]),
-        HumanMessage(content=[
-            {"type": "text", "text": static_context, "cache_control": {"type": "ephemeral"}},
-            {"type": "text", "text": dynamic}
+    try:
+        response = llm.invoke([
+            SystemMessage(content=[{"type": "text", "text": SYSTEM_PROMPT, "cache_control": {"type": "ephemeral"}}]),
+            HumanMessage(content=[
+                {"type": "text", "text": static_context, "cache_control": {"type": "ephemeral"}},
+                {"type": "text", "text": dynamic}
+            ])
         ])
-    ])
+    except Exception as e:
+        print(f"  Writer error: {e}")
+        save_checkpoint(state["session_dir"], "writer")
+        if state.get("on_agent"): state["on_agent"]("writer", f"error:Writer failed — {e}")
+        return {"pipeline_error": True}
+
     if state.get("on_agent"): state["on_agent"]("writer", "done")
     tokens = response.usage_metadata.get("total_tokens", 0) if response.usage_metadata else 0
     return {"generated_text": response.content, "total_tokens": tokens}

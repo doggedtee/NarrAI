@@ -69,7 +69,7 @@ def cleaner(state: NarrAIState) -> dict:
 
     gen = os.path.join(state["session_dir"], "data", "generated")
 
-    if state.get("resume_from") == "plot_planner":
+    if state.get("resume_from") in ("plot_planner", "analyzer", "predictor", "writer"):
         print("  Resuming — skipping cleaner.")
         if state.get("on_agent"): state["on_agent"]("cleaner", "done")
         return {}
@@ -106,7 +106,7 @@ List fields to review:
         print(f"  Cleaner error: {e}")
         save_json(os.path.join(state["session_dir"], "data", "pipeline_checkpoint.json"), {"resume_from": "cleaner"})
         if state.get("on_agent"): state["on_agent"]("cleaner", f"error:Cleaner failed — {e}")
-        return {}
+        return {"pipeline_error": True}
 
     from core.merger import merge_fields
 

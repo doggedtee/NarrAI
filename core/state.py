@@ -20,3 +20,4 @@ class NarrAIState(TypedDict):
     total_tokens: Annotated[int, operator.add]
     approved: bool
     iteration: int
+    pipeline_error: Optional[bool]

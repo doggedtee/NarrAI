@@ -1,4 +1,5 @@
 import json
+import os
 from langchain_core.messages import SystemMessage, HumanMessage
 from core.state import NarrAIState
 from core.llm import llm
@@ -15,6 +16,13 @@ Only decline for style if it is a MAJOR deviation — minor style differences ar
 Respond in this exact format:
 APPROVED: true or false
 FEEDBACK: brief feedback in 2-3 sentences"""
+
+
+def save_checkpoint(session_dir: str, stage: str):
+    path = os.path.join(session_dir, "data", "pipeline_checkpoint.json")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump({"resume_from": stage}, f)
 
 
 def critic(state: NarrAIState) -> dict:
@@ -36,15 +44,21 @@ Active characters:
 Current scene state:
 {json.dumps(state["active_state"], indent=2, ensure_ascii=False)}"""
 
-    response = llm.invoke([
-        SystemMessage(content=[{"type": "text", "text": SYSTEM_PROMPT, "cache_control": {"type": "ephemeral"}}]),
-        HumanMessage(content=[
-            {"type": "text", "text": static_context, "cache_control": {"type": "ephemeral"}},
-            {"type": "text", "text": f"Generated continuation to review:\n{state['generated_text']}"}
+    try:
+        response = llm.invoke([
+            SystemMessage(content=[{"type": "text", "text": SYSTEM_PROMPT, "cache_control": {"type": "ephemeral"}}]),
+            HumanMessage(content=[
+                {"type": "text", "text": static_context, "cache_control": {"type": "ephemeral"}},
+                {"type": "text", "text": f"Generated continuation to review:\n{state['generated_text']}"}
+            ])
         ])
-    ])
-    content = response.content
+    except Exception as e:
+        print(f"  Critic error: {e}")
+        save_checkpoint(state["session_dir"], "writer")
+        if state.get("on_agent"): state["on_agent"]("critic", f"error:Critic failed — {e}")
+        return {"pipeline_error": True}
 
+    content = response.content
     approved = any(phrase in content.lower() for phrase in ["approved: true", "approved:true", "approved: yes"])
     feedback = content.split("FEEDBACK:")[-1].strip()
 

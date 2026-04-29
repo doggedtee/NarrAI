@@ -118,7 +118,7 @@ def world_builder(state: NarrAIState) -> dict:
     orig = os.path.join(base, "data", "original")
     pipeline_state_path = os.path.join(base, "data", "pipeline_state.json")
 
-    if state.get("resume_from") in ("cleaner", "plot_planner"):
+    if state.get("resume_from") in ("cleaner", "plot_planner", "analyzer", "predictor", "writer"):
         print("  Resuming — skipping world_builder.")
         cached = load_json(pipeline_state_path)
         whole_state = {
@@ -190,7 +190,7 @@ def world_builder(state: NarrAIState) -> dict:
             print(f"  Error processing chapter {i + 1}: {e}")
             if state.get("on_agent"):
                 state["on_agent"]("world_builder", f"error:Chapter {i + 1} failed — {e}")
-            return {"world_builder_error": True}
+            return {"pipeline_error": True}
 
 
     if not has_predicted:
@@ -199,13 +199,6 @@ def world_builder(state: NarrAIState) -> dict:
         save_json(os.path.join(orig, "character_state.json"), whole_state["characters"])
         save_json(os.path.join(orig, "location_state.json"), whole_state["locations"])
         save_json(os.path.join(orig, "plot_threads.json"), whole_state["plot_threads"])
-        original_chapters_dir = os.path.join(base, "original_chapters")
-        os.makedirs(original_chapters_dir, exist_ok=True)
-        for chapter in state["chapters"]:
-            src = os.path.join(base, "chapters", chapter["filename"])
-            dst = os.path.join(original_chapters_dir, chapter["filename"])
-            if os.path.exists(src):
-                os.rename(src, dst)
 
     os.makedirs(gen, exist_ok=True)
     save_json(os.path.join(gen, "world_state.json"), whole_state["world"])

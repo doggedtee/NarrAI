@@ -20,6 +20,8 @@ MAX_ITERATIONS = 3
 
 
 def should_plan(state: NarrAIState) -> str:
+    if state.get("pipeline_error"):
+        return "end"
     last_chapter = state["chapters"][-1]
     if not last_chapter["filename"].startswith("predicted"):
         return "cleaner"
@@ -29,7 +31,13 @@ def should_plan(state: NarrAIState) -> str:
     return "analyzer"
 
 
+def check_error(state: NarrAIState) -> str:
+    return "end" if state.get("pipeline_error") else "next"
+
+
 def should_rewrite(state: NarrAIState) -> str:
+    if state.get("pipeline_error"):
+        return "end"
     if state["approved"] or state["iteration"] >= MAX_ITERATIONS:
         return "end"
     return "writer"
@@ -49,12 +57,25 @@ def build_graph() -> StateGraph:
     graph.set_entry_point("world_builder")
     graph.add_conditional_edges("world_builder", should_plan, {
         "cleaner": "cleaner",
-        "analyzer": "analyzer"
+        "analyzer": "analyzer",
+        "end": END
     })
-    graph.add_edge("cleaner", "plot_planner")
-    graph.add_edge("plot_planner", "analyzer")
-    graph.add_edge("analyzer", "predictor")
-    graph.add_edge("predictor", "writer")
+    graph.add_conditional_edges("cleaner", check_error, {
+        "end": END,
+        "next": "plot_planner"
+    })
+    graph.add_conditional_edges("plot_planner", check_error, {
+        "end": END,
+        "next": "analyzer"
+    })
+    graph.add_conditional_edges("analyzer", check_error, {
+        "end": END,
+        "next": "predictor"
+    })
+    graph.add_conditional_edges("predictor", check_error, {
+        "end": END,
+        "next": "writer"
+    })
     graph.add_edge("writer", "critic")
     graph.add_conditional_edges("critic", should_rewrite, {
         "writer": "writer",
@@ -70,11 +91,6 @@ def run(session_dir: str = ".", on_agent=None):
     chapters_dir = os.path.join(session_dir, "chapters")
     predicted_dir = os.path.join(session_dir, "predicted_chapters")
     original_dir = os.path.join(session_dir, "original_chapters")
-
-    for tmp in [os.path.join(chapters_dir, "predicted_temp.txt"),
-                *([os.path.join(predicted_dir, f) for f in os.listdir(predicted_dir) if f.endswith("_temp.txt")] if os.path.exists(predicted_dir) else [])]:
-        if os.path.exists(tmp):
-            os.remove(tmp)
 
     chapters = load_chapters(chapters_dir)
     if not chapters and os.path.exists(original_dir):
@@ -117,11 +133,23 @@ def run(session_dir: str = ".", on_agent=None):
         "critic_feedback": [],
         "total_tokens": 0,
         "approved": False,
-        "iteration": 0
+        "iteration": 0,
+        "pipeline_error": False
     }
 
     app = build_graph()
     result = app.invoke(initial_state)
+
+    if result.get("pipeline_error"):
+        return result
+
+    if not os.path.exists(original_dir):
+        os.makedirs(original_dir, exist_ok=True)
+        for chapter in chapters:
+            src = os.path.join(chapters_dir, chapter["filename"])
+            dst = os.path.join(original_dir, chapter["filename"])
+            if os.path.exists(src):
+                os.rename(src, dst)
 
     generated_text = result["generated_text"]
     chapter_title = None
@@ -145,20 +173,14 @@ def run(session_dir: str = ".", on_agent=None):
         existing = [f for f in os.listdir(predicted_dir) if f.endswith(".txt") and not f.endswith("_predictions.txt")]
         base_name = f"predicted_{len(existing) + 1}"
 
-    temp_chapter = os.path.join(chapters_dir, "predicted_temp.txt")
-    temp_predicted = os.path.join(predicted_dir, f"{base_name}_temp.txt")
-    temp_predictions = os.path.join(predicted_dir, f"{base_name}_predictions_temp.txt")
-
-    with open(temp_chapter, "w", encoding="utf-8") as f:
+    with open(os.path.join(chapters_dir, "predicted.txt"), "w", encoding="utf-8") as f:
         f.write(generated_text)
-    with open(temp_predicted, "w", encoding="utf-8") as f:
-        f.write(result["generated_text"])
-    with open(temp_predictions, "w", encoding="utf-8") as f:
-        f.write(result["predictions"])
 
-    os.rename(temp_chapter, os.path.join(chapters_dir, "predicted.txt"))
-    os.rename(temp_predicted, os.path.join(predicted_dir, f"{base_name}.txt"))
-    os.rename(temp_predictions, os.path.join(predicted_dir, f"{base_name}_predictions.txt"))
+    with open(os.path.join(predicted_dir, f"{base_name}.txt"), "w", encoding="utf-8") as f:
+        f.write(result["generated_text"])
+
+    with open(os.path.join(predicted_dir, f"{base_name}_predictions.txt"), "w", encoding="utf-8") as f:
+        f.write(result["predictions"])
 
     save_prediction(result["predictions"], chapters[-1]["filename"])
 
