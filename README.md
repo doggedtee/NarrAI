@@ -37,7 +37,7 @@ Only characters and locations relevant to the main plot thread are passed to the
 | Writer | ~10.7k | ~2.6k | ~2.6k |
 | **Total per chapter** | **grows linearly** | **~15k** | **~13-17k** |
 
-v3 adds prompt caching on system prompts and static context in the writer→critic loop, reducing repeated token costs on rewrites.
+v3 adds prompt caching on system prompts and static context in the writer→critic loop, reducing repeated token costs on rewrites. The writer is instructed to always produce a minimum of 2000 words per chapter.
 
 ## Stack
 
