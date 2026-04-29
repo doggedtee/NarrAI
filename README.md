@@ -41,10 +41,10 @@ v3 adds prompt caching on system prompts and static context in the writer→crit
 
 ## Stack
 
-- Python, LangGraph, LangChain
+- Python, FastAPI, LangGraph, LangChain
 - Claude API (claude-sonnet-4-20250514) with prompt caching
 - Sentence Transformers (cosine similarity for state deduplication and semantic removal)
-- SQLite
+- SQLite, json5
 
 ## Installation
 
@@ -61,11 +61,13 @@ ANTHROPIC_API_KEY=your_key_here
 
 ## Usage
 
-Place your chapter files in the `chapters/` folder as `.txt` files (e.g. `chapter_01.txt`, `chapter_02.txt`).
-
-Run the pipeline:
+Start the server:
 ```bash
-python main.py
+uvicorn api.main:app --reload
 ```
 
-Each run generates the next chapter. Generated chapters are saved to `predicted_chapters/` with incrementing numbers alongside their plot predictions. World state is saved to `data/` as JSON files after each run.
+Open `http://localhost:8000` in your browser. Upload chapter `.txt` files via drag-and-drop or the file picker, reorder them if needed, then click **Generate**. Agent progress streams in real time. Chapters can be exported as `.txt` or bundled into an `.epub`.
+
+Each browser session gets an isolated workspace that expires after 24 hours of inactivity. A demo limit applies to guest sessions: 1 source chapter and 1 generated chapter.
+
+If the pipeline fails mid-run, a checkpoint is saved at the failed stage. The next generation resumes from there — no reprocessing of already-completed chapters.
