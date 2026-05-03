@@ -3,7 +3,7 @@ import json5
 import os
 from langchain_core.messages import SystemMessage, HumanMessage
 from core.state import NarrAIState
-from core.llm import llm
+from core.llm import llm_gpt4o_mini as llm
 
 
 SYSTEM_PROMPT = """You are a story continuity editor. Your job is to clean up accumulated world state data by removing elements that are no longer relevant to the ongoing story.

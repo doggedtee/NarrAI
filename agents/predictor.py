@@ -2,11 +2,11 @@ import json
 import os
 from langchain_core.messages import SystemMessage, HumanMessage
 from core.state import NarrAIState
-from core.llm import llm
+from core.llm import llm_gpt4o_mini as llm
 
 SYSTEM_PROMPT = """You are a story analyst. Based on the current story state, predict what will happen next.
 
-Provide 3-5 detailed plot predictions. For each prediction, describe what happens, who is involved, and what consequences it may have. You CAN include new characters and locations in your predictions."""
+Provide 3-5 plot predictions. For each prediction, write 2-3 sentences max: what happens, who is involved, and the consequence. You CAN include new characters and locations in your predictions."""
 
 
 def save_checkpoint(session_dir: str, stage: str):

@@ -4,13 +4,14 @@ from langchain_core.messages import SystemMessage, HumanMessage
 from core.state import NarrAIState
 from core.merger import merge_into_whole
 from core.schema import get_schema, select_context
-from core.llm import llm
+from core.llm import llm_gpt4o_mini as llm
 
 
 SYSTEM_PROMPT = """You are a story analyst. Extract structured world state updates from story chapters.
 
 Rules:
 - Only track information that is crucial for story continuity and future predictions — skip trivial or one-off details (e.g. "good at waking up", "gave up English in middle school").
+- Keep all field values CONCISE and BRIEF.
 - Use lists for fields that can have multiple values (abilities, possessions, traits, features, inhabitants, etc.)
 - Use strings only for fields that are always singular (name, age, status, current_location, etc.)
 - To remove a list item prefix it with "[remove]" (e.g. "[remove] wallet").
