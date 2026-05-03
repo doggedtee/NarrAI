@@ -53,7 +53,7 @@ def merge_fields(existing: dict, new: dict):
                     similarities = np.dot(kept_embeddings, item_embedding[0]) / (
                         np.linalg.norm(kept_embeddings, axis=1) * np.linalg.norm(item_embedding[0])
                     )
-                    if float(np.max(similarities)) < 0.85:
+                    if float(np.max(similarities)) < 0.90:
                         filtered_add.append(item)
                 existing[key] = list(set(kept) | set(filtered_add))
             else:

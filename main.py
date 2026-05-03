@@ -7,8 +7,8 @@ from core.state import NarrAIState
 from core.parser import load_chapters
 from core.rag import build_vectorstore
 from agents.world_builder import world_builder
-from agents.plot_planner import plot_planner
 from agents.cleaner import cleaner
+from agents.plot_planner import plot_planner
 from agents.analyzer import analyzer
 from agents.predictor import predictor
 from agents.writer import writer
@@ -143,13 +143,12 @@ def run(session_dir: str = ".", on_agent=None):
     if result.get("pipeline_error"):
         return result
 
-    if not os.path.exists(original_dir):
-        os.makedirs(original_dir, exist_ok=True)
-        for chapter in chapters:
-            src = os.path.join(chapters_dir, chapter["filename"])
-            dst = os.path.join(original_dir, chapter["filename"])
-            if os.path.exists(src):
-                os.rename(src, dst)
+    os.makedirs(original_dir, exist_ok=True)
+    for chapter in chapters:
+        src = os.path.join(chapters_dir, chapter["filename"])
+        dst = os.path.join(original_dir, chapter["filename"])
+        if os.path.exists(src):
+            os.rename(src, dst)
 
     generated_text = result["generated_text"]
     chapter_title = None
