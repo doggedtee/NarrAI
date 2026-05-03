@@ -41,10 +41,13 @@ Only characters and locations relevant to the main plot thread are passed to the
 
 v3 adds prompt caching on system prompts and static context in the writer→critic loop, reducing repeated token costs on rewrites. The writer is instructed to always produce a minimum of 2000 words per chapter.
 
+v3.1 routes extraction agents (world builder, predictor, cleaner) to GPT-4o mini and keeps creative agents (writer, critic, analyzer, plot planner) on Claude Sonnet. Real-world result: 23 chapters analyzed + 1 chapter generated for **$0.10**, with world builder costing **$0.019** for 93K tokens.
+
 ## Stack
 
 - Python, FastAPI, LangGraph, LangChain
-- Claude API (claude-sonnet-4-20250514) with prompt caching
+- Claude API (claude-sonnet-4-20250514) — writer, critic, analyzer, plot planner
+- OpenAI API (gpt-4o-mini) — world builder, predictor, cleaner
 - Sentence Transformers (cosine similarity for state deduplication and semantic removal)
 - SQLite, json5
 
@@ -59,6 +62,7 @@ pip install -r requirements.txt
 Create a `.env` file:
 ```
 ANTHROPIC_API_KEY=your_key_here
+OPENAI_API_KEY=your_key_here
 ```
 
 ## Usage
