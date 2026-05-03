@@ -317,6 +317,14 @@ async function generateChapter() {
 
       if (event.type === 'agent') {
         updateAgent(event.agent, event.status);
+      } else if (event.type === 'pipeline_error') {
+        es.close();
+        chapters.pop();
+        selectedIdx = -1;
+        renderChapterList();
+        document.getElementById('emptyState').style.display = 'block';
+        document.getElementById('chapterContent').style.display = 'none';
+        resolve();
       } else if (event.type === 'result') {
         es.close();
         newChapter.text = event.text;

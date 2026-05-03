@@ -120,9 +120,15 @@ async def generate(request: Request):
             queue.put_nowait({"type": "agent", "agent": agent, "status": status})
 
         def run_pipeline():
-            result = run(session_dir=session_dir, on_agent=on_agent)
-            result_holder["result"] = result
-            queue.put_nowait({"type": "done"})
+            try:
+                result = run(session_dir=session_dir, on_agent=on_agent)
+                result_holder["result"] = result
+                if result.get("pipeline_error"):
+                    queue.put_nowait({"type": "pipeline_error"})
+                else:
+                    queue.put_nowait({"type": "done"})
+            except Exception as e:
+                queue.put_nowait({"type": "pipeline_error", "message": str(e)})
 
         loop = asyncio.get_event_loop()
         loop.run_in_executor(None, run_pipeline)
@@ -130,6 +136,8 @@ async def generate(request: Request):
         while True:
             event = await queue.get()
             yield f"data: {json.dumps(event)}\n\n"
+            if event["type"] == "pipeline_error":
+                break
             if event["type"] == "done":
                 result = result_holder.get("result", {})
                 yield f"data: {json.dumps({'type': 'result', 'text': result.get('generated_text', ''), 'title': result.get('chapter_title', ''), 'tokens': result.get('total_tokens', 0)})}\n\n"
@@ -146,13 +154,13 @@ async def list_chapters(request: Request):
     predicted_dir = os.path.join(session_dir, "predicted_chapters")
     order_path = os.path.join(session_dir, "order.json")
 
-    src_dir = original_dir if os.path.exists(original_dir) else chapters_dir
     source_map = {}
-    if os.path.exists(src_dir):
-        for f in os.listdir(src_dir):
-            if f.endswith(".txt") and not f.startswith("predicted"):
-                with open(os.path.join(src_dir, f), encoding="utf-8") as fh:
-                    source_map[f] = {"name": f, "content": fh.read(), "type": "source"}
+    for src_dir in [original_dir, chapters_dir]:
+        if os.path.exists(src_dir):
+            for f in os.listdir(src_dir):
+                if f.endswith(".txt") and not f.startswith("predicted") and f not in source_map:
+                    with open(os.path.join(src_dir, f), encoding="utf-8") as fh:
+                        source_map[f] = {"name": f, "content": fh.read(), "type": "source"}
 
     generated_map = {}
     if os.path.exists(predicted_dir):
